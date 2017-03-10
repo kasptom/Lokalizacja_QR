@@ -1,0 +1,1 @@
+# Lokalizacja_QR
