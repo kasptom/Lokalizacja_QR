@@ -42,17 +42,26 @@ while True:
     # wrap image data
     image = zbar.Image(width, height, 'Y800', raw)
 
-    # scan the image for barcodes
+    # scan the image for barcode(s)
     scanner.scan(image)
 
     # extract results
     for symbol in image:
         # do something useful with results
         print 'decoded', symbol.type, 'symbol', '"%s"' % symbol.data
+        vertices = symbol.location
+        # draw lines on the gray frame
+        cv2.line(frame, vertices[0], vertices[1], (0, 0, 255))
+        cv2.line(frame, vertices[1], vertices[2], (0, 255, 0))
+        cv2.line(frame, vertices[2], vertices[3], (255, 0, 0))
+        cv2.line(frame, vertices[3], vertices[0], (0, 255, 255))
+        for vertex in vertices:
+            print 'point', '(%s, %s)' % vertex
 
     ###########################
+
     # Display the resulting frame
-    cv2.imshow('frame', gray)
+    cv2.imshow('frame', frame)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
