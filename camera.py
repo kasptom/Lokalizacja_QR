@@ -4,6 +4,7 @@
     https://github.com/opencv/opencv
     https://github.com/Zbar/Zbar
 """
+import math
 import zbar
 
 import cv2
@@ -25,13 +26,38 @@ def mark_qr_code(vertices):
 
 def print_qr_info(symbol):
     print 'decoded', symbol.type, 'symbol', '"%s"' % symbol.data
-    print 'distance' '%s', calculate_distance(symbol.location)
-    for vertex in symbol.location:
-        print 'point', '(%s, %s)' % vertex
+    distance, side_size = calculate_distance(symbol.location)
+    print 'distance', distance, 'avg side size', side_size
+    # for vertex in symbol.location:
+    #     print 'point', '(%s, %s)' % vertex
+
+
+def average_side_size(vertices):
+    sides_lengths = []
+    n = len(vertices)
+    for idx in range(0, n):
+        x1 = vertices[idx][0]
+        y1 = vertices[idx][1]
+        x2 = vertices[(idx + 1) % n][0]
+        y2 = vertices[(idx + 1) % n][1]
+        sides_lengths.append(math.sqrt(math.pow(x2 - x1, 2.0) + (math.pow(y2 - y1, 2.0))))
+    average_size = sum(sides_lengths) / n
+    # print 'avg size', average_size
+    return average_size
 
 
 def calculate_distance(vertices):
-    pass
+    fov = 45.0
+    fov_rad = (fov / 180.0) * math.pi
+    real_side_size = 27
+
+    magic_factor = 6.67
+
+    side_size = average_side_size(vertices)
+    window_height = 480
+    real_height = window_height * (real_side_size / side_size)
+    distance = (real_height/2) * math.atan(fov_rad / 2.0) * magic_factor
+    return distance, side_size
 
 
 while True:
