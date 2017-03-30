@@ -6,6 +6,7 @@
 """
 import math
 import zbar
+import numpy
 
 import cv2
 from PIL import Image
@@ -49,14 +50,27 @@ def average_side_size(vertices):
 def calculate_distance(vertices):
     fov = 45.0
     fov_rad = (fov / 180.0) * math.pi
-    real_side_size = 27
+    real_side_size = 9.7
 
     magic_factor = 6.67
 
     side_size = average_side_size(vertices)
     window_height = 480
     real_height = window_height * (real_side_size / side_size)
-    distance = (real_height/2) * math.atan(fov_rad / 2.0) * magic_factor
+    distance = (real_height / 2) * math.atan(fov_rad / 2.0) * magic_factor
+    camera_matrix = numpy.array(
+        [[532.80992189, 0.0, 342.4952186],
+         [0.0, 532.93346421, 233.8879292],
+         [0.0, 0.0, 1.0]])
+    object_points = numpy.array([
+        (0.0, 0.0, 0.0),
+        (10.0, 0.0, 0.0),
+        (10.0, 10.0, 0.0),
+        (0.0, 10.0, 0.0)])
+    image_points = numpy.array(vertices, dtype=float)
+    distortion_coefs = numpy.array([-2.81325576e-01, 2.91130395e-02, 1.21234330e-03, -1.40825369e-04, 1.54865844e-01])
+    retval, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, distortion_coefs)
+    print retval, rvec, tvec
     return distance, side_size
 
 
