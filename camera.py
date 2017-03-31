@@ -15,7 +15,7 @@ from PIL import Image
 scanner = zbar.ImageScanner()
 scanner.parse_config('enable')
 
-cap = cv2.VideoCapture()
+cap = cv2.VideoCapture(1)
 
 
 def mark_qr_code(vertices):
@@ -47,12 +47,32 @@ def average_side_size(vertices):
     return average_size
 
 
-def calculate_distance(vertices):
-    fov = 45.0
-    fov_rad = (fov / 180.0) * math.pi
-    real_side_size = 9.7
+def enlarge(point_a, point_b):
+    k = 50
+    coef_1 = point_a[0] - point_b[0]
+    coef_2 = point_a[1] - point_b[1]
+    return point_a[0] - (coef_1 * k), point_a[1] - (coef_2 * k)
 
-    magic_factor = 6.67
+
+def draw_xyz_axis(object_points, rvec, tvec, matrix, coefs, image_points, vertices):
+    imgpts, jac = cv2.projectPoints(object_points, rvec, tvec, matrix, coefs, image_points)
+    img_point = tuple(imgpts[0].ravel())
+    img_point2 = tuple(imgpts[1].ravel())
+    img_point3 = tuple(imgpts[2].ravel())
+    img_point_ints = [(int(img_point[0]), int(img_point[1])), (int(img_point2[0]), int(img_point2[1])),
+                      (int(img_point3[0]), int(img_point3[1]))]
+    cv2.line(frame, vertices[0], img_point_ints[0], (255, 0, 0), 5)
+    cv2.line(frame, vertices[0], img_point_ints[1], (0, 255, 0), 5)
+    cv2.line(frame, vertices[0], img_point_ints[2], (0, 0, 255), 5)
+    print rvec, tvec
+
+
+def calculate_distance(vertices):
+    fov = 90.0
+    fov_rad = (fov / 180.0) * math.pi
+    real_side_size = 27.5
+
+    magic_factor = 3.1
 
     side_size = average_side_size(vertices)
     window_height = 480
@@ -70,7 +90,8 @@ def calculate_distance(vertices):
     image_points = numpy.array(vertices, dtype=float)
     distortion_coefs = numpy.array([-2.81325576e-01, 2.91130395e-02, 1.21234330e-03, -1.40825369e-04, 1.54865844e-01])
     retval, rvec, tvec = cv2.solvePnP(object_points, image_points, camera_matrix, distortion_coefs)
-    print retval, rvec, tvec
+    axis_points = numpy.array([(10, 0, 0), (0, 10, 0), (0, 0, 10)], dtype=float)
+    draw_xyz_axis(axis_points, rvec, tvec, camera_matrix, distortion_coefs, image_points, vertices)
     return distance, side_size
 
 
@@ -97,7 +118,7 @@ while True:
 
     # extract results
     for qr_code in image:
-        mark_qr_code(qr_code.location)
+        # mark_qr_code(qr_code.location)
         print_qr_info(qr_code)
 
     # Display the resulting frame
