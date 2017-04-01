@@ -1,5 +1,9 @@
 # http://www.pyimagesearch.com/2016/10/24/ubuntu-16-04-how-to-install-opencv/
-# place this file next to opencv and opencv_contrib directory
+# 1) Download or clone from github repo opencv and opencv_contrib
+# 2) Place opencv and opencv_contrib in the same directory
+# 3) Create directory release in opencv
+# 4) Go to opencv/release
+# 5) Launch this script from the release directory
 cmake -D CMAKE_BUILD_TYPE=RELEASE \
 -D CMAKE_INSTALL_PREFIX=/usr/local \
 -D WITH_TBB=ON \
