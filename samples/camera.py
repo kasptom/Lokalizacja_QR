@@ -1,14 +1,14 @@
 #!/usr/bin/python
 """
-    QR code (from video) scanner based on examples from
+    QR code (from video) processing based on examples from
     https://github.com/opencv/opencv
     https://github.com/Zbar/Zbar
 """
 import math
 import zbar
-import numpy
 
 import cv2
+import numpy
 from PIL import Image
 
 # create and configure a reader
@@ -28,7 +28,7 @@ def mark_qr_code(vertices):
 def print_qr_info(symbol):
     print 'decoded', symbol.type, 'symbol', '"%s"' % symbol.data
     distance, side_size = calculate_distance(symbol.location)
-    print 'distance', distance, 'avg side size', side_size
+    # print 'distance', distance, 'avg side size', side_size
     # for vertex in symbol.location:
     #     print 'point', '(%s, %s)' % vertex
 
@@ -64,17 +64,45 @@ def draw_xyz_axis(object_points, rvec, tvec, matrix, coefs, image_points, vertic
     cv2.line(frame, vertices[0], img_point_ints[0], (255, 0, 0), 5)
     cv2.line(frame, vertices[0], img_point_ints[1], (0, 255, 0), 5)
     cv2.line(frame, vertices[0], img_point_ints[2], (0, 0, 255), 5)
-    print rvec, tvec
+
+    rotation_matrix = numpy.array([[0, 0, 0],
+                                   [0, 0, 0],
+                                   [0, 0, 0]], dtype=float)
+    rotation_matrix = cv2.Rodrigues(rvec)[0]
+
+    camera_position = - rotation_matrix.transpose() * tvec
+    for i in range(len(camera_position[0])):
+        for j in range(len(camera_position[0])):
+            camera_position[i][j] = int(camera_position[i][j])
+
+    print camera_position[2]
+    # euler_angles = rotationMatrixToEulerAngles(rotation_matrix)
+    # if euler_angles[0] < 0:
+    #     euler_angles[0] = -(math.pi - abs(euler_angles[0]))
+    # else:
+    #     euler_angles[0] = (math.pi - abs(euler_angles[0]))
+    #
+    # if euler_angles[2] < 0:
+    #     euler_angles[2] = -(math.pi - abs(euler_angles[2]))
+    # else:
+    #     euler_angles[2] = (math.pi - abs(euler_angles[2]))
+    #
+    # for idx in range(len(euler_angles)):
+    #     euler_angles[idx] = euler_angles[idx] * 180 / math.pi
+    #
+    # print euler_angles
 
 
 def calculate_distance(vertices):
     fov = 90.0
     fov_rad = (fov / 180.0) * math.pi
-    real_side_size = 27.5
+    real_side_size = 19.2
 
     magic_factor = 3.1
 
     side_size = average_side_size(vertices)
+    if side_size <= 0:
+        return
     window_height = 480
     real_height = window_height * (real_side_size / side_size)
     distance = (real_height / 2) * math.atan(fov_rad / 2.0) * magic_factor
@@ -97,7 +125,7 @@ def calculate_distance(vertices):
 
 while True:
     if not cap.isOpened():
-        cap.open(0)
+        cap.open(1)
         continue
     # Capture frame-by-frame
     ret, frame = cap.read()
