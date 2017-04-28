@@ -18,21 +18,24 @@ class ImgProcessor:
             (10.0, 10.0, 0.0),
             (0.0, 10.0, 0.0)])
         self.camera_matrix = numpy.array(
-            [[532.80992189, 0.0, 342.4952186],
-             [0.0, 532.93346421, 233.8879292],
+            [[5.2899351181828501e+02, 0., 2.9450258403806163e+02],
+             [0., 5.2899351181828501e+02, 2.2097639018482772e+02],
              [0.0, 0.0, 1.0]])
         self.rotation_matrix = numpy.array(
             [[0, 0, 0],
              [0, 0, 0],
              [0, 0, 0]], dtype=float)
         self.distortion_coefs = numpy.array(
-            [-2.81325576e-01, 2.91130395e-02, 1.21234330e-03, -1.40825369e-04, 1.54865844e-01])
+            [1.1393838013330945e-01, 1.2711065646876812e-01,
+             -3.4306406160909859e-02, -1.0243554211321552e-02,
+             -1.1529950378308689e+00])
         self.window_height = 480
         self.fov = 90.0
         self.fov_rad = (self.fov / 180.0) * math.pi
-        # self.real_side_size = 19.2
-        self.real_side_size = 9.7
+        self.real_side_size = 19.2
+        # self.real_side_size = 9.7
         self.magic_factor = 3.1
+        # self.magic_factor = 1.
         self.axis_3d_model = numpy.array([(10, 0, 0), (0, 10, 0), (0, 0, 10)], dtype=float)
 
     def extract_data(self, frame):
@@ -70,7 +73,7 @@ class ImgProcessor:
         qr_data.set_rotation_and_translation(rvec, tvec)
 
         self.draw_xyz_axis(qr_code.location, qr_data.r_vec, qr_data.t_vec, frame)
-        qr_data.set_camera_coordinates(self.get_camera_coordinates(qr_data.r_vec, qr_data.distance))
+        qr_data.set_camera_coordinates(self.get_camera_coordinates(qr_data.r_vec, qr_data.t_vec, qr_data.distance))
         return qr_data
 
     @staticmethod
@@ -123,10 +126,11 @@ class ImgProcessor:
 
         return distance, side_size
 
-    def get_camera_coordinates(self, r_vec, distance):
+    def get_camera_coordinates(self, r_vec, t_vec, distance):
         """
         Calculates coordinates in object world https://math.stackexchange.com/a/83578
 
+        :param t_vec:
         :param distance: estimated distance from camera
         :param r_vec: rotation vector
         :return: coordinates in qr code coordinate system
@@ -134,7 +138,9 @@ class ImgProcessor:
         cv2.Rodrigues(r_vec, self.rotation_matrix)
         inv_rot = self.rotation_matrix.transpose()
         result = -inv_rot * numpy.array([0.0, 0.0, 1.0], dtype=float).transpose()
+        # result = t_vec
         return result.item(2) * distance, result.item(5) * distance, result.item(8) * distance
+        # return result.item(0), result.item(1), result.item(2)
 
     @staticmethod
     def convert_to_pil_format(gray):
