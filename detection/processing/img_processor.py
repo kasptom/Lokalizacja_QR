@@ -7,6 +7,8 @@ from PIL import Image
 
 from img_data import QrData
 
+MS = 10.0  # model side size
+
 
 class ImgProcessor:
     def __init__(self):
@@ -14,9 +16,9 @@ class ImgProcessor:
         self.scanner.parse_config('enable')
         self.qr_3d_model = numpy.array([
             (0.0, 0.0, 0.0),
-            (10.0, 0.0, 0.0),
-            (10.0, 10.0, 0.0),
-            (0.0, 10.0, 0.0)])
+            (MS, 0.0, 0.0),
+            (MS, MS, 0.0),
+            (0.0, MS, 0.0)])
         self.camera_matrix = numpy.array(
             [[5.2899351181828501e+02, 0., 2.9450258403806163e+02],
              [0., 5.2899351181828501e+02, 2.2097639018482772e+02],
@@ -32,9 +34,9 @@ class ImgProcessor:
         self.window_height = 480
         self.fov = 90.0
         self.fov_rad = (self.fov / 180.0) * math.pi
-        self.real_side_size = 19.2
+        self.real_side_size = 27.5
+        # self.real_side_size = 19.2
         # self.real_side_size = 9.7
-        self.magic_factor = 3.1
         self.axis_3d_model = numpy.array([(10, 0, 0), (0, 10, 0), (0, 0, 10)], dtype=float)
 
     def extract_data(self, frame):
@@ -61,10 +63,6 @@ class ImgProcessor:
             qr_code = qr_code[0]
 
         qr_data.set_text(qr_code.data)
-        distance, side_size = self.calculate_distance(qr_code.location)
-
-        qr_data.set_average_side_size(side_size)
-        qr_data.set_distance(distance)
 
         qr_location = numpy.array(qr_code.location, dtype=float)
 
@@ -72,7 +70,8 @@ class ImgProcessor:
         qr_data.set_rotation_and_translation(rvec, tvec)
 
         self.draw_xyz_axis(qr_code.location, qr_data.r_vec, qr_data.t_vec, frame)
-        qr_data.set_camera_coordinates(self.get_camera_coordinates(qr_data.r_vec, qr_data.t_vec, qr_data.distance))
+        qr_data.set_camera_coordinates(self.get_camera_coordinates(qr_data))
+        qr_data.set_distance(self.distance_from_xyz(camera_position=qr_data.camera_coordinates))
         return qr_data
 
     @staticmethod
@@ -113,37 +112,24 @@ class ImgProcessor:
         for i in range(len(camera_position[0])):
             for j in range(len(camera_position[0])):
                 camera_position[i][j] = int(camera_position[i][j])
-                # print camera_position[2]
 
-    def calculate_distance(self, vertices):
-        side_size = ImgProcessor.average_side_size(vertices)
-        if side_size <= 0:
-            return
-
-        real_height = self.window_height * (self.real_side_size / side_size)
-        distance = (real_height / 2) * math.atan(self.fov_rad / 2.0) * self.magic_factor
-
-        return distance, side_size
-
-    def get_camera_coordinates(self, r_vec, t_vec, distance):
+    def get_camera_coordinates(self, qr_code):
         """
         Calculates coordinates in object world.
 
-        :param t_vec: translation vector
-        :param distance: estimated distance from camera using :func:`ImgProcessor.calculate_distance`
-        :param r_vec: rotation vector
         :return: coordinates in qr code coordinate system
         """
+        r_vec = qr_code.r_vec
+        t_vec = qr_code.t_vec
         cv2.Rodrigues(r_vec, self.rotation_matrix)
         inv_rot = self.rotation_matrix.transpose()
 
         camera_position = -numpy.matrix(inv_rot) * numpy.matrix(t_vec)
         camera_position = camera_position.item(0), camera_position.item(1), camera_position.item(2)
-        return tuple(self.with_calculated_distance(camera_position, distance))
+        return tuple(self.position_in_centimeters(camera_position))
 
     @staticmethod
     def convert_to_pil_format(gray):
-        # obtain image data
         pil = Image.fromarray(gray)
         return pil
 
@@ -153,16 +139,15 @@ class ImgProcessor:
             math.pow(camera_position[0], 2) + math.pow(camera_position[1], 2) + math.pow(camera_position[2], 2)
         )
 
-    def with_calculated_distance(self, camera_position, distance):
+    def position_in_centimeters(self, camera_position):
         """
-        Applies distance calculated with :func:`ImgProcessor.calculate_distance`
+        Calculates real distance taking into account size of QR code
 
         :param camera_position: coordinates calculated from rotation and translation
-        :param distance: :func:`ImgProcessor.calculate_distance`
-        :return: coordinates of a camera with corrected distance
+        :return: coordinates of a camera with correct distance
         """
-        distance_xyz = self.distance_from_xyz(camera_position)
-        camera_position_with_distance = [camera_position[0] * distance / distance_xyz,
-                                         camera_position[1] * distance / distance_xyz,
-                                         camera_position[2] * distance / distance_xyz]
+        proportion = self.real_side_size / MS
+        camera_position_with_distance = [camera_position[0] * proportion,
+                                         camera_position[1] * proportion,
+                                         camera_position[2] * proportion]
         return camera_position_with_distance
