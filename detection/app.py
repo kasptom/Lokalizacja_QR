@@ -17,8 +17,8 @@ while True:
     qr_data = processor.extract_data(image_gray)
 
     if qr_data.distance >= 0:
-        print "distance {}".format(qr_data.distance)
-        print "camera coordinates %.2f %.2f %.2f" % qr_data.camera_coordinates
+        output = qr_data.camera_coordinates + (qr_data.distance,)
+        print "camera coordinates (%.2f, %.2f, %.2f), distance %f" % tuple(output)
     # Display the resulting frame
     cv2.imshow('frame', image_gray)
     if cv2.waitKey(1) & 0xFF == ord('q'):

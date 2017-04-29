@@ -35,7 +35,6 @@ class ImgProcessor:
         self.real_side_size = 19.2
         # self.real_side_size = 9.7
         self.magic_factor = 3.1
-        # self.magic_factor = 1.
         self.axis_3d_model = numpy.array([(10, 0, 0), (0, 10, 0), (0, 0, 10)], dtype=float)
 
     def extract_data(self, frame):
@@ -128,22 +127,42 @@ class ImgProcessor:
 
     def get_camera_coordinates(self, r_vec, t_vec, distance):
         """
-        Calculates coordinates in object world https://math.stackexchange.com/a/83578
+        Calculates coordinates in object world.
 
-        :param t_vec:
-        :param distance: estimated distance from camera
+        :param t_vec: translation vector
+        :param distance: estimated distance from camera using :func:`ImgProcessor.calculate_distance`
         :param r_vec: rotation vector
         :return: coordinates in qr code coordinate system
         """
         cv2.Rodrigues(r_vec, self.rotation_matrix)
         inv_rot = self.rotation_matrix.transpose()
-        result = -inv_rot * numpy.array([0.0, 0.0, 1.0], dtype=float).transpose()
-        # result = t_vec
-        return result.item(2) * distance, result.item(5) * distance, result.item(8) * distance
-        # return result.item(0), result.item(1), result.item(2)
+
+        camera_position = -numpy.matrix(inv_rot) * numpy.matrix(t_vec)
+        camera_position = camera_position.item(0), camera_position.item(1), camera_position.item(2)
+        return tuple(self.with_calculated_distance(camera_position, distance))
 
     @staticmethod
     def convert_to_pil_format(gray):
         # obtain image data
         pil = Image.fromarray(gray)
         return pil
+
+    @staticmethod
+    def distance_from_xyz(camera_position):
+        return math.sqrt(
+            math.pow(camera_position[0], 2) + math.pow(camera_position[1], 2) + math.pow(camera_position[2], 2)
+        )
+
+    def with_calculated_distance(self, camera_position, distance):
+        """
+        Applies distance calculated with :func:`ImgProcessor.calculate_distance`
+
+        :param camera_position: coordinates calculated from rotation and translation
+        :param distance: :func:`ImgProcessor.calculate_distance`
+        :return: coordinates of a camera with corrected distance
+        """
+        distance_xyz = self.distance_from_xyz(camera_position)
+        camera_position_with_distance = [camera_position[0] * distance / distance_xyz,
+                                         camera_position[1] * distance / distance_xyz,
+                                         camera_position[2] * distance / distance_xyz]
+        return camera_position_with_distance
