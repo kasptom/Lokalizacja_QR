@@ -2,8 +2,10 @@ import cv2
 
 from camera import Camera
 from detection.processing.img_processor import ImgProcessor
+from localization.LocationRetriever import LocationRetriever
 
-camera = Camera(camera_id=1)
+camera = Camera(camera_id=0)
+retriever = LocationRetriever()
 processor = ImgProcessor()
 
 while True:
@@ -17,10 +19,13 @@ while True:
     qr_data = processor.extract_data(image_gray)
 
     if qr_data.distance >= 0:
-        output = qr_data.camera_coordinates + (qr_data.distance,)
+        coordinates = qr_data.camera_coordinates
+        output = coordinates + (qr_data.distance,)
         print "camera coordinates (%.2f, %.2f, %.2f), distance %f" % tuple(output)
+        location = retriever.retrieve_location(qr_data.text, coordinates)
+        print location
     # Display the resulting frame
-    cv2.imshow('frame', image_gray)
+    # cv2.imshow('frame', image_gray)
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
 
