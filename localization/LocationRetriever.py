@@ -2,7 +2,7 @@ import json
 
 import numpy
 
-DEFAULT_RAWSON_PATH = "../resources/room.roson"
+DEFAULT_RAWSON_PATH = "resources/room.roson"
 
 
 class LocationRetriever:
@@ -31,20 +31,24 @@ class LocationRetriever:
 
         x_nw = position['NW']['x']
         y_nw = position['NW']['y']
+        z_nw = position['NW']['z']
+
         x_ne = position['NE']['x']
         y_ne = position['NE']['y']
+        z_ne = position['NE']['z']
+
         x_sw = position['SW']['x']
         y_sw = position['SW']['y']
+        z_sw = position['SW']['z']
 
-        ox = numpy.array([x_ne - x_nw, y_ne - y_nw, 0], dtype=float)
-        oy = numpy.array([x_sw - x_nw, y_sw - y_nw, 0], dtype=float)
+        ox = numpy.array([x_ne - x_nw, y_ne - y_nw, z_ne - z_nw], dtype=float)
+        oy = numpy.array([x_sw - x_nw, y_sw - y_nw, z_sw - z_nw], dtype=float)
         oz = numpy.cross(ox, oy)
 
         i = ox / numpy.linalg.norm(ox)
         j = oy / numpy.linalg.norm(oy)
         k = oz / numpy.linalg.norm(oz)
 
-        height = qr_code['height']
-        room_location = numpy.array([x_nw, y_nw, height], dtype=float) + a * i + b * j + c * k
+        room_location = numpy.array([x_nw, y_nw, z_nw], dtype=float) + a * i + b * j + c * k
         return room_location
 
