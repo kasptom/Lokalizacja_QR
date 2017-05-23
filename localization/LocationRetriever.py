@@ -41,8 +41,8 @@ class LocationRetriever:
         y_sw = position['SW']['y']
         z_sw = position['SW']['z']
 
-        ox = numpy.array([x_ne - x_nw, y_ne - y_nw, z_ne - z_nw], dtype=float)
-        oy = numpy.array([x_sw - x_nw, y_sw - y_nw, z_sw - z_nw], dtype=float)
+        oy = numpy.array([x_ne - x_nw, y_ne - y_nw, z_ne - z_nw], dtype=float)
+        ox = numpy.array([x_sw - x_nw, y_sw - y_nw, z_sw - z_nw], dtype=float)
         oz = numpy.cross(ox, oy)
 
         i = ox / numpy.linalg.norm(ox)
